@@ -8,7 +8,4 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MyLog {
-
-    // 模块号
-    int module();
 }
