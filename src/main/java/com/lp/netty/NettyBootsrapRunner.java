@@ -37,7 +37,7 @@ import java.net.InetSocketAddress;
  *
  * 这样一来，NettyBootsrapRunner 可以在App的启动和关闭时执行Websocket服务的启动和关闭。而且通过 ApplicationContextAware 还能获取到 ApplicationContext
  */
-@Component
+//@Component
 public class NettyBootsrapRunner implements ApplicationRunner, ApplicationListener<ContextClosedEvent>, ApplicationContextAware {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NettyBootsrapRunner.class);

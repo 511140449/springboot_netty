@@ -1,4 +1,5 @@
-
+server:
+  port: 7777
 
 logging:
   # 配置级别

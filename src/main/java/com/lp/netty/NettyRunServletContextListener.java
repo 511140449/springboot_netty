@@ -15,7 +15,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.netty.channel.ChannelFuture;
 
-@WebListener
+//@WebListener
 public class NettyRunServletContextListener implements ServletContextListener {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyRunServletContextListener.class);
