@@ -7,7 +7,7 @@ logging:
   file:
     path: D:/home/netty/logs
     name: ${logging.file.path}/neety.log
-#  config: classpath:logback-spring.xml
+  config: classpath:logback-spring.xml
 
 redis:
   my:
