@@ -26,7 +26,7 @@ public class MyAnnotionUtil {
         System.out.println("MyAnnotionUtil static");
 
         // 拿到基础包之后,去得到所有Controller类
-        List<Class> clzes = ClassUtil.parseAllController("org.my.netty.handler");
+        List<Class> clzes = ClassUtil.parseAllController("com.lp.netty.handler");
 
         // 迭代所有全限定名
         for (Class clz : clzes) {

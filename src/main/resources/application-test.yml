@@ -1,13 +1,12 @@
-
-
 logging:
   # 配置级别
   level:
     #分包配置级别，即不同的目录下可以使用不同的级别
-    com.lp: error
-#  config: classpath:logback-spring.xml
-#  file:
-#    path: /home/netty/logs
+
+    cn.ybt.netty: info
+  config: classpath:logback-spring.xml
+  file:
+    path: /home/netty/logs
 
 redis:
   my:
@@ -45,8 +44,6 @@ spring:
     listener:
       # 指定listener 容器中的线程数，用于提高并发量
       concurrency: 6
-  profiles:
-    active: @environment@
 
 
 # ?

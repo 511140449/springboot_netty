@@ -56,6 +56,7 @@ public class MyLogAspect {
         Class pojo = joinPoint.getSignature().getDeclaringType();
 
         Logger log = LoggerFactory.getLogger(pojo);
+        log.info("lp");
         //参数
         Object[] args = joinPoint.getArgs();
         StringBuffer result = new StringBuffer();
