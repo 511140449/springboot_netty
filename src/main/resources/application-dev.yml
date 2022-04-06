@@ -45,6 +45,17 @@ spring:
     listener:
       # 指定listener 容器中的线程数，用于提高并发量
       concurrency: 6
+  data:
+    mongodb:
+#      uri: mongodb://test:test%40server3@49.4.8.208:27017/taxi_operate
+#      uri: mongodb://readwrite:readwrite%40server3@49.4.8.208:27017/taxi_operate
+      authentication-database: admin
+      username: test
+      password: test@server3
+      database: taxi_operate
+      host: 49.4.8.208
+      port: 27017
+
 
 
 # ?
