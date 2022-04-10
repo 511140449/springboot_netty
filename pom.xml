@@ -24,6 +24,10 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter-thymeleaf</artifactId>-->
+<!--		</dependency>-->
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -121,7 +125,10 @@
 					<include>**/*.yml</include>
 					<include>logback-spring.xml</include>
 					<include>mybatis/**/*.xml</include>
+					<include>static/**/*</include>
+					<include>templates/**/*</include>
 				</includes>
+
 			</resource>
 		</resources>
 		<plugins>
