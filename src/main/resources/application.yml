@@ -37,6 +37,7 @@ spring:
   mvc:
     #静态资源映射路径
     static-path-pattern: /static/**
+
   kafka:
     # 指定kafka 代理地址，可以多个
     bootstrap-servers: 192.168.9.186:9091,192.168.9.186:9092,192.168.9.186:9093
