@@ -13,5 +13,95 @@
 
 </div>
 </body>
-
 </html>
+<script type="text/javascript">
+    // 设定默认值
+    var websock = null;
+    var obj = {
+        initWebsocket(){
+            console.log("websockt初始化")
+            /*
+            * 初始化 websock
+            * 连接 服务器地址
+            * 并绑定 websock 四个事件方法
+            */
+            this.websock = new WebSocket('ws://localhost:1111?userId=1');
+            // 接收服务器返回的数据
+            this.websock.onmessage = this.websocketonmessage;
+            // 连接建立时触发
+            this.websock.onopen = this.websocketonopen;
+            // 连接中发生异常
+            this.websock.onerror = this.websocketonerror;
+            // 连接关闭时触发
+            this.websock.onclose = this.websocketclose;
+        },
+
+        websocketonopen()
+        {
+            /*
+            * websocket 初始化后 执行的方法
+            * 调用 发送数据方法
+            */
+            this.websocketsend();
+        },websocketonerror()
+        {
+            /*
+            * websocket 连接建立失败 执行的方法
+            * 注：我这里加了个判断，如果联系建立失败就在连接几次
+            */
+            if(this.cishu < 5){
+                this.cishu = this.cishu + 1;
+                this.initWebsocket();
+            }
+        },
+        websocketsend()
+        {
+
+            /*
+            * websocket 数据发送 通过 websock.send() 方法向服务器发送数据
+            * 注：这里随便发哈，主要作用就是通过这个动作，让客户端与服务端建立联系
+            */
+            let actions = {
+                "test": "12345"
+            };
+            this.websock.send(JSON.stringify(actions));
+            console.log("发送")
+        },
+        websocketclose(e)
+        {
+            /*
+            * websocket 连接关闭 执行的方法
+            */
+            console.log('断开连接', e);
+        },
+        websocketonmessage(e)
+        {
+            /*
+            * websocket 数据接收 执行的方法
+            * 注：服务器通过 websocke 向客户端发送数据时，这里的方法就会自动触发啦
+            */
+            const redata = JSON.parse(e.data);
+            switch (redata.messageType) {
+                case 0: // 售后 提示
+                    // ... 执行
+                    break;
+                case 1: // 库存 提示
+                    // ... 执行
+                    break;
+                case 2: // 下架 提示
+                    // ... 执行
+                    break;
+            }
+        }
+
+    };
+
+
+    $(function (){
+        obj.initWebsocket();
+        // 每10分钟 通过 websocket 向服务器发送一次心跳 证明客户端没有离线 依然在线可以正常接受消息
+        setInterval(obj.websocketsend, 100000);
+
+    });
+
+</script>
