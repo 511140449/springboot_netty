@@ -70,8 +70,7 @@ management:
       enabled: true
 
 netty:
-  port: 20090
-  url: 192.168.10.250
+  port: 1111
 
   websocket:
     # Websocket服务端口
