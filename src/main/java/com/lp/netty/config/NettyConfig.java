@@ -56,13 +56,16 @@ public class NettyConfig {
             channel = b.bind(address).sync().channel();
 
             log.info("====== springboot netty start ======");
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                @Autowired
-                private NettyConfig nettyConfig;
+            //结束 和 应用closed 时间做的是相同的事情
+            Runtime.getRuntime().addShutdownHook(new Thread()  {
                 @Override
                 public void run() {
-                    log.info("---nettyConfig destroy Hook---");
-                    nettyConfig.destroy();
+                    log.info("---nettyConfig destroy Hook start---");
+                    if(channel != null && channel.isActive() ){
+                        log.info("hook 执行");
+                        NettyConfig.this.destroy();
+                    }
+                    log.info("---nettyConfig destroy Hook end---");
                 }
             });
 
@@ -80,21 +83,20 @@ public class NettyConfig {
 
     public void destroy() {
         log.info("Shutdown Netty Server...");
-        if (channel == null) {
+        if (channel == null || !channel.isActive()) {
             log.info("Netty Closed!");
             return;
         }
         ChannelId id = this.channel.id();
 
-        channel.close();
+        channel.flush();
 
         Channel channelNow = channelCache.getChannelGroup().find(id);
         if( channelNow != null ){
+            log.info("存在缓存chennel");
             channelNow.close();
             channelCache.flushDb();
         }
-
-
         log.info("Shutdown Netty Server Success!");
     }
 }
