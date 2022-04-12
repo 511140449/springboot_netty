@@ -28,13 +28,6 @@ import io.netty.channel.ChannelFuture;
 public class NettyRunServletContextListener implements ApplicationRunner, ApplicationListener<ContextClosedEvent>, ApplicationContextAware {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyRunServletContextListener.class);
-
-    @Value("${netty.port}")
-    private int port;
-
-    @Value("${netty.url}")
-    private String url;
-
     @Autowired
     private NettyConfig nettyConfig;
 
@@ -54,19 +47,9 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
     @Override
     public void run(ApplicationArguments args) throws Exception {
         try {
-            InetSocketAddress address = new InetSocketAddress(InetAddress.getLocalHost(), port);
-            ChannelFuture future = nettyConfig.run(address);
-            logger.info("====== springboot netty start ======");
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                @Override
-                public void run() {
-                    logger.info("---nettyConfig destroy---");
-                    nettyConfig.destroy();
-                }
-            });
-            future.channel().closeFuture().syncUninterruptibly();
+            nettyConfig.run();
         } catch (Exception e) {
-            logger.error("---springboot netty server start error : ", e.getMessage() + "---");
+            logger.error("---springboot netty server start error : {}", e.getMessage() + "---");
         }
     }
 

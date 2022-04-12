@@ -1,17 +1,17 @@
 package com.lp.netty.config;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 
+import io.netty.channel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.springframework.stereotype.Component;
@@ -20,15 +20,23 @@ import org.springframework.stereotype.Component;
 public class NettyConfig {
 
     private static final Logger log = LoggerFactory.getLogger(NettyConfig.class);
+
+    @Value("${netty.port}")
+    private int port;
+
+    @Value("${netty.host}")
+    private String host;
+
     private Channel channel;
 
     @Autowired
-    private ChannelCache channelCachel;
+    private ChannelCache channelCache;
 
     /**
      * 启动服务
      */
-    public ChannelFuture run(InetSocketAddress address) {
+    public void run(){
+
         final EventLoopGroup bossGroup = new NioEventLoopGroup();
         final EventLoopGroup workerGroup = new NioEventLoopGroup();
         ChannelFuture f = null;
@@ -43,33 +51,49 @@ public class NettyConfig {
                     // Nagle算法试图减少TCP包的数量和结构性开销, 将多个较小的包组合成较大的包进行发送.但这不是重点, 关键是这个算法受TCP延迟确认影响, 会导致相继两次向连接发送请求包, 读数据时会有一个最多达500毫秒的延时.
                     .childOption(ChannelOption.TCP_NODELAY, true)
                     .childHandler(new ServerChannelInitializer());
-
+            //当前主机
+            InetSocketAddress address = new InetSocketAddress(host, port);
             channel = b.bind(address).sync().channel();
+
+            log.info("====== springboot netty start ======");
+            Runtime.getRuntime().addShutdownHook(new Thread() {
+                @Autowired
+                private NettyConfig nettyConfig;
+                @Override
+                public void run() {
+                    log.info("---nettyConfig destroy Hook---");
+                    nettyConfig.destroy();
+                }
+            });
+
             //让其不执行到 finally
-            channel.closeFuture().sync();
+            //channel.closeFuture().sync();  sync():等待Future直到其完成，如果这个Future失败，则抛出失败原因; syncUninterruptibly()：不会被中断的sync(),一直等待;
+            channel.closeFuture().syncUninterruptibly();
         } catch (Exception e) {
             log.error("Netty start error:", e);
         } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
-
-            if (f != null && f.isSuccess()) {
-                log.info("Netty server listening " + address.getHostName() + " on port " + address.getPort()
-                        + " and ready for connections...");
-            } else {
-                log.error("Netty server start up Error!");
-            }
         }
 
-        return f;
     }
 
     public void destroy() {
         log.info("Shutdown Netty Server...");
-        channelCachel.flushDb();
-        if (channel != null) {
-            channel.close();
+        if (channel == null) {
+            log.info("Netty Closed!");
+            return;
         }
+        ChannelId id = this.channel.id();
+
+        channel.close();
+
+        Channel channelNow = channelCache.getChannelGroup().find(id);
+        if( channelNow != null ){
+            channelNow.close();
+            channelCache.flushDb();
+        }
+
 
         log.info("Shutdown Netty Server Success!");
     }

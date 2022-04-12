@@ -11,8 +11,9 @@ import io.netty.channel.ChannelId;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.util.concurrent.GlobalEventExecutor;
+import org.springframework.stereotype.Component;
 
-@Configuration
+@Component
 public class ChannelCache {
 
     @Autowired

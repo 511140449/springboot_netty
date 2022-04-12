@@ -71,7 +71,7 @@ management:
 
 netty:
   port: 1111
-
+  host: 127.0.0.1
   websocket:
     # Websocket服务端口
     port: 1024
