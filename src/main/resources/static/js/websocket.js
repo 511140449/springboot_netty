@@ -157,26 +157,6 @@ var wsObj = {
         };
     }
 
-    ,websocketSend()
-    {
-        /*
-        * websocket 数据发送 通过 websock.send() 方法向服务器发送数据
-        * 注：这里随便发哈，主要作用就是通过这个动作，让客户端与服务端建立联系
-        */
-        let actions = {
-            "test": "12345"
-        };
-        // this.ws.send(JSON.stringify(actions));
-        // console.log("发送"+actions)
-        console.log("this.ws.readyState = "+this.ws.readyState+" === this.ws.OPEN =" +this.ws.OPEN)
-        if (this.ws.readyState === this.ws.OPEN) {
-            this.ws.send(JSON.stringify(actions));
-            console.log("发送"+actions)
-        }else{
-            console.log("未发生发送"+actions)
-        }
-    }
-
 };
 
 //心跳检测
