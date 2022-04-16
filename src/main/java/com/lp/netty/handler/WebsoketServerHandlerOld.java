@@ -1,30 +1,32 @@
 package com.lp.netty.handler;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.lp.netty.bean.Message;
 import com.lp.netty.bean.Result;
 import com.lp.netty.config.ChannelCache;
 import com.lp.netty.config.MyChannelHandlerPool;
 import com.lp.util.Const;
 import com.lp.util.MyAnnotionUtil;
-import com.lp.util.SpringUtil;
 import io.netty.channel.ChannelHandler;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import lombok.extern.slf4j.Slf4j;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Component
 @Slf4j
-public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
+@ChannelHandler.Sharable
+public class WebsoketServerHandlerOld extends ChannelInboundHandlerAdapter {
+    @Autowired
+    private ChannelCache channelCache;
     
     private static final ConcurrentHashMap<ChannelId, Integer> channelIdleTime = new ConcurrentHashMap<ChannelId, Integer>();
 
@@ -37,6 +39,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         log.info("====== channelInactive ======");
+        channelCache.removeChannel(ctx.channel());
         ctx.close();
         log.info("====== Channel close ======");
     }
@@ -46,7 +49,17 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
         if( msg instanceof  Message ) {
             Message message = (Message) msg;
-            Result result = MyAnnotionUtil.process(ctx, message);
+            Result result = new Result();
+            // 非登录接口，验证是否已登录过
+            if (message.getModule() != 1) {
+                if (channelCache.getChannel(ctx.channel()) == null) {
+                    result = new Result(0, "need auth");
+                    ctx.writeAndFlush(result);
+                    return;
+                }
+            }
+            channelCache.addChannel(ctx.channel(), message.getUid());
+            result = MyAnnotionUtil.process(ctx, message);
             log.info("result: " + result.toString());
             ctx.writeAndFlush(result);
         }else if ( msg instanceof String ){
@@ -109,6 +122,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
                     if (num >= Const.TIME_OUT_NUM) {
                         log.error("--- TIME OUT ---");
                         channelIdleTime.remove(channelId);
+                        channelCache.removeChannel(ctx.channel());
                         ctx.close();
                     } else {
                         channelIdleTime.put(channelId, num);

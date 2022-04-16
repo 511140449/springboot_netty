@@ -42,9 +42,6 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
     @Autowired
     private ChannelCache channelCache;
 
-    @Autowired
-    private WebsoketServerHandler websoketServerHandler;
-
 
     private ApplicationContext applicationContext;
     @Override
@@ -86,7 +83,7 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
                             socketChannel.pipeline().addLast(new ChunkedWriteHandler());
                             socketChannel.pipeline().addLast(new HttpObjectAggregator(65536));
                             socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", "WebSocket", true, 65536 * 10));
-                            socketChannel.pipeline().addLast(websoketServerHandler);
+                            socketChannel.pipeline().addLast(new WebsoketServerHandler());
                             //心跳
                             socketChannel.pipeline().addLast(new IdleStateHandler(10, 0, 0));
                             // 解码编码 尝试
@@ -101,6 +98,7 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
             //当前主机
             channel = bootstrap.bind().sync().channel();
 
+//            channelCache.addChannel(channel,);
             log.info(NettyRunServletContextListener.class + "已启动，正在监听： " + channel.localAddress());
             //结束 和 应用closed 时间做的是相同的事情
             Runtime.getRuntime().addShutdownHook(new Thread()  {
