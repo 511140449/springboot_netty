@@ -29,20 +29,25 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        Message message = (Message) msg;
-        Result result = new Result();
-        // 非登录接口，验证是否已登录过
-        if (message.getModule() != 1) {
-            if (channelCache.getChannel(ctx.channel()) == null) {
-                result = new Result(0, "need auth");
-                ctx.writeAndFlush(result);
-                return;
+
+        if( msg instanceof  Message ) {
+            Message message = (Message) msg;
+            Result result = new Result();
+            // 非登录接口，验证是否已登录过
+            if (message.getModule() != 1) {
+                if (channelCache.getChannel(ctx.channel()) == null) {
+                    result = new Result(0, "need auth");
+                    ctx.writeAndFlush(result);
+                    return;
+                }
             }
+            channelCache.addChannel(ctx.channel(), message.getUid());
+            result = MyAnnotionUtil.process(ctx, message);
+            log.info("result: " + result.toString());
+            ctx.writeAndFlush(result);
+        }else{
+            ctx.writeAndFlush("pong");
         }
-        channelCache.addChannel(ctx.channel(), message.getUid());
-        result = MyAnnotionUtil.process(ctx, message);
-        log.info("result: " + result.toString());
-        ctx.writeAndFlush(result);
     }
 
     @Override
@@ -78,6 +83,12 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error("exceptionCaught:" + cause.getMessage());
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+        log.info("通道创建：{}", ctx.channel().remoteAddress());
     }
 
     @Override

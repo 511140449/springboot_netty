@@ -1,15 +1,23 @@
 package com.lp.netty;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.annotation.WebListener;
-
-import com.lp.netty.config.NettyConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.lp.netty.codec.MsgDecoder;
+import com.lp.netty.codec.MsgEncoder;
+import com.lp.netty.config.ChannelCache;
+import com.lp.netty.handler.ServerHandler;
+import com.lp.util.Const;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
+import io.netty.handler.timeout.IdleStateHandler;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,16 +28,22 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import io.netty.channel.ChannelFuture;
 
 @Component
+@Slf4j
 public class NettyRunServletContextListener implements ApplicationRunner, ApplicationListener<ContextClosedEvent>, ApplicationContextAware {
 
-    private static final Logger logger = LoggerFactory.getLogger(NettyRunServletContextListener.class);
+    @Value("${netty.port}")
+    private int port;
+
+    @Value("${netty.host}")
+    private String host;
+
+    private Channel channel;
+
     @Autowired
-    private NettyConfig nettyConfig;
+    private ChannelCache channelCache;
+
 
     private ApplicationContext applicationContext;
     @Override
@@ -37,20 +51,95 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
         this.applicationContext = applicationContext;
     }
 
+
+
     @Override
     public void onApplicationEvent(ContextClosedEvent event) {
         System.out.println("====== springboot netty destroy ======");
-        nettyConfig.destroy();
+        neetyDestroy();
         System.out.println("---test contextDestroyed method---");
     }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
+        final EventLoopGroup bossGroup = new NioEventLoopGroup();
+        final EventLoopGroup workerGroup = new NioEventLoopGroup();
+        ChannelFuture f = null;
         try {
-            nettyConfig.run();
+            ServerBootstrap bootstrap = new ServerBootstrap();
+            bootstrap.localAddress(new InetSocketAddress(host, this.port));
+            bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
+                    .option(ChannelOption.SO_BACKLOG, 128)
+                    //当设置为true的时候，TCP会实现监控连接是否有效，当连接处于空闲状态的时候，超过了2个小时，本地的TCP实现会发送一个数据包给远程的 socket，如果远程没有发回响应，TCP会持续尝试11分钟，知道响应为止，如果在12分钟的时候还没响应，TCP尝试关闭socket连接。
+                    //这个参数其实对应用层的程序而言没有什么用。可以通过应用层实现了解服务端或客户端状态，而决定是否继续维持该Socket
+                    .childOption(ChannelOption.SO_KEEPALIVE, false)
+                    //禁用nagle算法
+                    // Nagle算法试图减少TCP包的数量和结构性开销, 将多个较小的包组合成较大的包进行发送.但这不是重点, 关键是这个算法受TCP延迟确认影响, 会导致相继两次向连接发送请求包, 读数据时会有一个最多达500毫秒的延时.
+                    .childOption(ChannelOption.TCP_NODELAY, true)
+                    .childHandler(new ChannelInitializer<SocketChannel>(){
+                        @Override
+                        protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            //websocket协议本身是基于http协议的，所以这边也要使用http解编码器
+                            socketChannel.pipeline().addLast(new HttpServerCodec());
+                            socketChannel.pipeline().addLast(new ChunkedWriteHandler());
+                            socketChannel.pipeline().addLast(new HttpObjectAggregator(65536));
+                            // 解码编码
+                            // socketChannel.pipeline().addLast(new
+                            // LengthFieldBasedFrameDecoder(1024, 0, 2, 0, 2));
+//                            socketChannel.pipeline().addLast(new MsgDecoder());
+                            // socketChannel.pipeline().addLast(new LengthFieldPrepender(2));
+//                            socketChannel.pipeline().addLast(new MsgEncoder());
+//                            socketChannel.pipeline().addLast(new IdleStateHandler(Const.READER_IDLE_TIME_SECONDS, 0, 0));
+                            socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", "WebSocket", true, 65536 * 10));
+                            socketChannel.pipeline().addLast(new ServerHandler());
+                        }
+                    });
+            //当前主机
+            channel = bootstrap.bind().sync().channel();
+
+            log.info(NettyRunServletContextListener.class + "已启动，正在监听： " + channel.localAddress());
+            //结束 和 应用closed 时间做的是相同的事情
+            Runtime.getRuntime().addShutdownHook(new Thread()  {
+                @Override
+                public void run() {
+                    log.info("---nettyConfig destroy Hook start---");
+                    if(channel != null && channel.isActive() ){
+                        log.info("hook 执行");
+                        neetyDestroy();
+                    }
+                    log.info("---nettyConfig destroy Hook end---");
+                }
+            });
+
+            //让其不执行到 finally
+            //channel.closeFuture().sync();  sync():等待Future直到其完成，如果这个Future失败，则抛出失败原因; syncUninterruptibly()：不会被中断的sync(),一直等待;
+            channel.closeFuture().sync();
         } catch (Exception e) {
-            logger.error("---springboot netty server start error : {}", e.getMessage() + "---");
+            log.error("Netty start error:", e);
+        } finally {
+            workerGroup.shutdownGracefully();
+            bossGroup.shutdownGracefully();
         }
+    }
+
+
+    public void neetyDestroy() {
+        log.info("Shutdown Netty Server...");
+        if (channel == null || !channel.isActive()) {
+            log.info("Netty Closed!");
+            return;
+        }
+        ChannelId id = this.channel.id();
+
+        channel.flush();
+
+        Channel channelNow = channelCache.getChannelGroup().find(id);
+        if( channelNow != null ){
+            log.info("存在缓存chennel");
+            channelNow.close();
+            channelCache.flushDb();
+        }
+        log.info("Shutdown Netty Server Success!");
     }
 
 
