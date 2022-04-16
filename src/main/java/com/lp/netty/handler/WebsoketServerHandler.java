@@ -10,6 +10,7 @@ import com.lp.netty.config.ChannelCache;
 import com.lp.util.Const;
 import com.lp.util.MyAnnotionUtil;
 import com.lp.util.SpringUtil;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,13 +20,27 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 
-public class ServerHandler extends ChannelInboundHandlerAdapter {
+public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(ServerHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(WebsoketServerHandler.class);
     
     private ChannelCache channelCache = SpringUtil.getBean(ChannelCache.class);
     
     private static ConcurrentHashMap<ChannelId, Integer> channelIdleTime = new ConcurrentHashMap<ChannelId, Integer>();
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+        log.info("通道创建：{}", ctx.channel().remoteAddress());
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        log.info("====== channelInactive ======");
+        channelCache.removeChannel(ctx.channel());
+        ctx.close();
+        log.info("====== Channel close ======");
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -45,9 +60,46 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             result = MyAnnotionUtil.process(ctx, message);
             log.info("result: " + result.toString());
             ctx.writeAndFlush(result);
-        }else{
-            ctx.writeAndFlush("pong");
+        }else if ( msg instanceof String ){
+            String heartbeatReply = null;
+            String msgStr = (String) msg;
+            switch (msgStr){
+                case "ping":
+                    heartbeatReply = "pong";
+                    break;
+                default:
+                    heartbeatReply = "干什么呀？";
+                    break;
+            }
+            ctx.writeAndFlush(heartbeatReply).sync();
+        }else if (msg instanceof TextWebSocketFrame){
+            TextWebSocketFrame wsMsg = (TextWebSocketFrame) msg;
+            //接收的消息
+            System.out.println(String.format("收到客户端%s的数据：%s" ,ctx.channel().id(), wsMsg.text()));
+            sendMessage(ctx);
         }
+    }
+
+   /* @Override
+    protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame msg) throws Exception {
+        //接收的消息
+        System.out.println(String.format("收到客户端%s的数据：%s" ,ctx.channel().id(), msg.text()));
+
+        // 单独发消息
+        // sendMessage(ctx);
+        // 群发消息
+        sendAllMessage();
+    }*/
+
+
+    private void sendMessage(ChannelHandlerContext ctx){
+        String message = "消息";
+        ctx.writeAndFlush(new TextWebSocketFrame(message));
+    }
+    //广播
+    private void sendAllMessage(){
+        String message = "我是服务器，这是群发消息";
+//        MyChannelHandlerPool.channelGroup.writeAndFlush(new TextWebSocketFrame(message));
     }
 
     @Override
@@ -85,18 +137,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         log.error("exceptionCaught:" + cause.getMessage());
     }
 
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        super.channelActive(ctx);
-        log.info("通道创建：{}", ctx.channel().remoteAddress());
-    }
 
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        log.info("====== channelInactive ======");
-        channelCache.removeChannel(ctx.channel());
-        ctx.close();
-        log.info("====== Channel close ======");
-    }
 
 }

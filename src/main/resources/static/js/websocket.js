@@ -14,8 +14,9 @@ var wsObj = {
         var ws = wsObj.ws;
         function sendNumber() {
             if (ws.readyState === ws.OPEN) {
-                this.number++;
-                ws.send(number.toString());
+                wsObj.number++;
+                ws.send(wsObj.number.toString());
+                console.log("发送："+wsObj.number.toString())
                 setTimeout(sendNumber, 1000);
             }
         }
@@ -152,7 +153,7 @@ var wsObj = {
         };
         this.ws.onmessage = function(event) { //如果获取到消息，心跳检测重置
             heartCheck.reset().start(); //拿到任何消息都说明当前连接是正常的
-            this.msg(event.data,this.ws)
+            wsObj.msg(event.data,wsObj.ws)
         };
     }
 
@@ -196,8 +197,6 @@ var heartCheck = {
         this.timeoutObj = setTimeout(function() {
             //这里发送一个心跳，后端收到后，返回一个心跳消息，
             //onmessage拿到返回的心跳就说明连接正常
-            wsObj.ws.send("ping");
-            console.log("ping!")
             self.serverTimeoutObj = setTimeout(function() { //如果超过一定时间还没重置，说明后端主动断开了
                 console.log("try=close")
                 wsObj.ws.close(); //这里为什么要在send检测消息后，倒计时执行这个代码呢，因为这个代码的目的时为了触发onclose方法，这样才能实现onclose里面的重连方法

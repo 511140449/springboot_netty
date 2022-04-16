@@ -2,11 +2,8 @@ package com.lp.netty;
 
 import java.net.InetSocketAddress;
 
-import com.lp.netty.codec.MsgDecoder;
-import com.lp.netty.codec.MsgEncoder;
 import com.lp.netty.config.ChannelCache;
-import com.lp.netty.handler.ServerHandler;
-import com.lp.util.Const;
+import com.lp.netty.handler.WebsoketServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -16,7 +13,6 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
-import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,8 +46,6 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
     }
-
-
 
     @Override
     public void onApplicationEvent(ContextClosedEvent event) {
@@ -91,7 +85,7 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
 //                            socketChannel.pipeline().addLast(new MsgEncoder());
 //                            socketChannel.pipeline().addLast(new IdleStateHandler(Const.READER_IDLE_TIME_SECONDS, 0, 0));
                             socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", "WebSocket", true, 65536 * 10));
-                            socketChannel.pipeline().addLast(new ServerHandler());
+                            socketChannel.pipeline().addLast(new WebsoketServerHandler());
                         }
                     });
             //当前主机
