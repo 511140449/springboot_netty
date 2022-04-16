@@ -4,6 +4,7 @@ import java.net.InetSocketAddress;
 
 import com.lp.netty.config.ChannelCache;
 import com.lp.netty.handler.WebsoketServerHandler;
+import com.lp.util.Const;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -13,6 +14,7 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
+import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +41,9 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
 
     @Autowired
     private ChannelCache channelCache;
+
+    @Autowired
+    private WebsoketServerHandler websoketServerHandler;
 
 
     private ApplicationContext applicationContext;
@@ -81,15 +86,16 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
                             socketChannel.pipeline().addLast(new ChunkedWriteHandler());
                             socketChannel.pipeline().addLast(new HttpObjectAggregator(65536));
                             socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", "WebSocket", true, 65536 * 10));
-                            socketChannel.pipeline().addLast(new WebsoketServerHandler());
-
+                            socketChannel.pipeline().addLast(websoketServerHandler);
+                            //心跳
+                            socketChannel.pipeline().addLast(new IdleStateHandler(10, 0, 0));
                             // 解码编码 尝试
                             // socketChannel.pipeline().addLast(new
                             // LengthFieldBasedFrameDecoder(1024, 0, 2, 0, 2));
 //                            socketChannel.pipeline().addLast(new MsgDecoder());
                             // socketChannel.pipeline().addLast(new LengthFieldPrepender(2));
 //                            socketChannel.pipeline().addLast(new MsgEncoder());
-//                            socketChannel.pipeline().addLast(new IdleStateHandler(Const.READER_IDLE_TIME_SECONDS, 0, 0));
+//
                         }
                     });
             //当前主机

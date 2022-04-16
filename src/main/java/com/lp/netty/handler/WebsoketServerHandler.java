@@ -7,10 +7,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.lp.netty.bean.Message;
 import com.lp.netty.bean.Result;
 import com.lp.netty.config.ChannelCache;
+import com.lp.netty.config.MyChannelHandlerPool;
 import com.lp.util.Const;
 import com.lp.util.MyAnnotionUtil;
 import com.lp.util.SpringUtil;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,14 +21,16 @@ import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component
+@Slf4j
 public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
-
-    private static final Logger log = LoggerFactory.getLogger(WebsoketServerHandler.class);
+    @Autowired
+    private ChannelCache channelCache;
     
-    private ChannelCache channelCache = SpringUtil.getBean(ChannelCache.class);
-    
-    private static ConcurrentHashMap<ChannelId, Integer> channelIdleTime = new ConcurrentHashMap<ChannelId, Integer>();
+    private static final ConcurrentHashMap<ChannelId, Integer> channelIdleTime = new ConcurrentHashMap<ChannelId, Integer>();
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -99,7 +103,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
     //广播
     private void sendAllMessage(){
         String message = "我是服务器，这是群发消息";
-//        MyChannelHandlerPool.channelGroup.writeAndFlush(new TextWebSocketFrame(message));
+        MyChannelHandlerPool.channelGroup.writeAndFlush(new TextWebSocketFrame(message));
     }
 
     @Override
