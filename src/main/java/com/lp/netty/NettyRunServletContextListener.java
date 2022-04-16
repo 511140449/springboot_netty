@@ -62,7 +62,10 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.localAddress(new InetSocketAddress(host, this.port));
-            bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
+
+            bootstrap.group(bossGroup, workerGroup)
+                    // 指定使用的channel
+                    .channel(NioServerSocketChannel.class)
                     .option(ChannelOption.SO_BACKLOG, 128)
                     //当设置为true的时候，TCP会实现监控连接是否有效，当连接处于空闲状态的时候，超过了2个小时，本地的TCP实现会发送一个数据包给远程的 socket，如果远程没有发回响应，TCP会持续尝试11分钟，知道响应为止，如果在12分钟的时候还没响应，TCP尝试关闭socket连接。
                     //这个参数其实对应用层的程序而言没有什么用。可以通过应用层实现了解服务端或客户端状态，而决定是否继续维持该Socket
@@ -77,15 +80,16 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
                             socketChannel.pipeline().addLast(new HttpServerCodec());
                             socketChannel.pipeline().addLast(new ChunkedWriteHandler());
                             socketChannel.pipeline().addLast(new HttpObjectAggregator(65536));
-                            // 解码编码
+                            socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", "WebSocket", true, 65536 * 10));
+                            socketChannel.pipeline().addLast(new WebsoketServerHandler());
+
+                            // 解码编码 尝试
                             // socketChannel.pipeline().addLast(new
                             // LengthFieldBasedFrameDecoder(1024, 0, 2, 0, 2));
 //                            socketChannel.pipeline().addLast(new MsgDecoder());
                             // socketChannel.pipeline().addLast(new LengthFieldPrepender(2));
 //                            socketChannel.pipeline().addLast(new MsgEncoder());
 //                            socketChannel.pipeline().addLast(new IdleStateHandler(Const.READER_IDLE_TIME_SECONDS, 0, 0));
-                            socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", "WebSocket", true, 65536 * 10));
-                            socketChannel.pipeline().addLast(new WebsoketServerHandler());
                         }
                     });
             //当前主机
