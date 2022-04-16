@@ -4,7 +4,7 @@ import com.lp.netty.bean.Message;
 import com.lp.netty.bean.Result;
 import com.lp.netty.config.ChannelCache;
 import com.lp.netty.config.MyChannelHandlerPool;
-import com.lp.util.Const;
+import com.lp.util.constants.ChannelConstant;
 import com.lp.util.MyAnnotionUtil;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -119,7 +119,7 @@ public class WebsoketServerHandlerOld extends ChannelInboundHandlerAdapter {
                     channelIdleTime.put(channelId, 1);
                 } else {
                     int num = times.intValue() + 1;
-                    if (num >= Const.TIME_OUT_NUM) {
+                    if (num >= ChannelConstant.TIME_OUT_NUM) {
                         log.error("--- TIME OUT ---");
                         channelIdleTime.remove(channelId);
                         channelCache.removeChannel(ctx.channel());

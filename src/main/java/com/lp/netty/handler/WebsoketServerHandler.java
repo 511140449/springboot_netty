@@ -6,12 +6,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.lp.netty.bean.Message;
 import com.lp.netty.bean.Result;
-import com.lp.netty.config.ChannelCache;
 import com.lp.netty.config.MyChannelHandlerPool;
-import com.lp.util.Const;
+import com.lp.util.constants.ChannelConstant;
 import com.lp.util.MyAnnotionUtil;
-import com.lp.util.SpringUtil;
-import io.netty.channel.ChannelHandler;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,18 +17,17 @@ import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.apache.commons.lang3.time.DateFormatUtils;
 
 @Slf4j
 public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
-    
+    //线程安全
     private static final ConcurrentHashMap<ChannelId, Integer> channelIdleTime = new ConcurrentHashMap<ChannelId, Integer>();
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
-        log.info("通道创建：{}", ctx.channel().remoteAddress());
+        log.info("通道创建：{}，{}", ctx.channel().remoteAddress(), DateFormatUtils.format(new Date(),"yyyy-MM-dd HH:mm:ss"));
     }
 
     @Override
@@ -99,15 +95,15 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
             IdleStateEvent e = (IdleStateEvent) evt;
             if (e.state() == IdleState.READER_IDLE) {
-                log.warn("---READER_IDLE---" + dateFormat.format(new Date()));
+                log.warn("---READER_IDLE 读空闲---" + dateFormat.format(new Date()));
                 ChannelId channelId = ctx.channel().id();
                 Integer times = channelIdleTime.get(channelId);
                 if (times == null) {
                     channelIdleTime.put(channelId, 1);
                 } else {
-                    int num = times.intValue() + 1;
-                    if (num >= Const.TIME_OUT_NUM) {
-                        log.error("--- TIME OUT ---");
+                    int num = times + 1;
+                    if (num >= ChannelConstant.TIME_OUT_NUM) {
+                        log.error("---READER_IDLE TIME OUT 读空闲超时，关闭通道 ---");
                         channelIdleTime.remove(channelId);
                         ctx.close();
                     } else {

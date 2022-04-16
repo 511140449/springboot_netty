@@ -1,10 +1,11 @@
 package com.lp.netty;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
 import com.lp.netty.config.ChannelCache;
 import com.lp.netty.handler.WebsoketServerHandler;
-import com.lp.util.Const;
+import com.lp.util.constants.ChannelConstant;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -78,14 +79,15 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
                     .childHandler(new ChannelInitializer<SocketChannel>(){
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            //心跳- 必须放在前面
+                            socketChannel.pipeline().addLast(new IdleStateHandler(ChannelConstant.READER_IDLE_TIME_SECONDS, 0, 0, TimeUnit.SECONDS));
                             //websocket协议本身是基于http协议的，所以这边也要使用http解编码器
                             socketChannel.pipeline().addLast(new HttpServerCodec());
                             socketChannel.pipeline().addLast(new ChunkedWriteHandler());
                             socketChannel.pipeline().addLast(new HttpObjectAggregator(65536));
                             socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", "WebSocket", true, 65536 * 10));
                             socketChannel.pipeline().addLast(new WebsoketServerHandler());
-                            //心跳
-                            socketChannel.pipeline().addLast(new IdleStateHandler(10, 0, 0));
+
                             // 解码编码 尝试
                             // socketChannel.pipeline().addLast(new
                             // LengthFieldBasedFrameDecoder(1024, 0, 2, 0, 2));
