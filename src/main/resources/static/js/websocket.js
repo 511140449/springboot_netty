@@ -148,7 +148,7 @@ var wsObj = {
         };
         this.ws.onopen = function() {
             console.log("llws连接成功! " + new Date().toLocaleString());
-            wsObj.open()
+            wsObj.open();
             heartCheck.reset().start(); //心跳检测重置
         };
         this.ws.onmessage = function(event) { //如果获取到消息，心跳检测重置
