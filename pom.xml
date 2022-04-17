@@ -8,134 +8,73 @@
 		<version>2.6.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>org.my</groupId>
+	<groupId>com.lp</groupId>
 	<artifactId>springboot_netty</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
 	<name>springboot_netty</name>
 	<description>Demo project for Spring Boot</description>
 
+	<packaging>pom</packaging>
+
+	<modules>
+		<module>nettyserver</module>
+	</modules>
+
 	<properties>
 		<java.version>1.8</java.version>
+		<devtools.version>2.6.2</devtools.version>
+		<lombok.version>1.18.22</lombok.version>
+		<netty.version>4.1.75.Final</netty.version>
+		<msgpack.version>0.6.12</msgpack.version>
+		<fastjson.version>1.2.54</fastjson.version>
 	</properties>
 
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
+	<dependencyManagement>
+		<dependencies>
+			<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-lang3</artifactId>
+				<version>${commons-lang3.version}</version>
+			</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-aop</artifactId>
-		</dependency>
+			<!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
+			<dependency>
+				<groupId>com.alibaba</groupId>
+				<artifactId>fastjson</artifactId>
+				<version>${fastjson.version}</version>
+			</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-tomcat</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
-	    <dependency>
-	        <groupId>org.apache.commons</groupId>
-	        <artifactId>commons-lang3</artifactId>
-	    </dependency>
-	    
-	    <!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
-	    <dependency>
-	        <groupId>com.alibaba</groupId>
-	        <artifactId>fastjson</artifactId>
-	        <version>1.2.54</version>
-	    </dependency>
-	    
-	    <!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
-	    <dependency>
-	        <groupId>io.netty</groupId>
-	        <artifactId>netty-all</artifactId>
-	    </dependency>
-	    
-	    <!-- https://mvnrepository.com/artifact/org.msgpack/msgpack -->
-	    <dependency>
-	        <groupId>org.msgpack</groupId>
-	        <artifactId>msgpack</artifactId>
-	        <version>0.6.12</version>
-	    </dependency>
-	    
-	    <!-- Redis -->
-	    <dependency>
-	        <groupId>org.springframework.boot</groupId>
-	        <artifactId>spring-boot-starter-data-redis</artifactId>
-	    </dependency>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-		</dependency>
+			<!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-all</artifactId>
+				<version>${netty.version}</version>
+			</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb</artifactId>
-		</dependency>
+			<!-- https://mvnrepository.com/artifact/org.msgpack/msgpack -->
+			<dependency>
+				<groupId>org.msgpack</groupId>
+				<artifactId>msgpack</artifactId>
+				<version>${msgpack.version}</version>
+			</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<optional>true</optional>
-		</dependency>
-	</dependencies>
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>${lombok.version}</version>
+			</dependency>
 
-	<profiles>
-		<profile>
-			<!--开发环境（本地环境）-->
-			<id>dev</id>
-			<properties>
-				<environment>dev</environment>
-			</properties>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
-		</profile>
-		<profile>
-			<!--测试环境-->
-			<id>test</id>
-			<properties>
-				<environment>test</environment>
-			</properties>
-		</profile>
-		<profile>
-			<!--生产环境-->
-			<id>prod</id>
-			<properties>
-				<environment>pro</environment>
-			</properties>
-		</profile>
-	</profiles>
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-devtools</artifactId>
+				<optional>true</optional>
+				<version>${devtools.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
-	<build>
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>true</filtering>
-				<includes>
-					<include>**/*.properties</include>
-					<include>**/*.yml</include>
-					<include>logback-spring.xml</include>
-					<include>mybatis/**/*.xml</include>
-					<include>static/**/*</include>
-					<include>templates/**/*</include>
-				</includes>
-
-			</resource>
-		</resources>
+	<!--<build>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
@@ -145,11 +84,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!--true跳过测试-->
+                    &lt;!&ndash;true跳过测试&ndash;&gt;
                     <skipTests>true</skipTests>
                 </configuration>
             </plugin>
 		</plugins>
-	</build>
+	</build>-->
 
 </project>
