@@ -18,6 +18,7 @@
 
 	<modules>
 		<module>nettyserver</module>
+		<module>nettyclient</module>
 	</modules>
 
 	<properties>

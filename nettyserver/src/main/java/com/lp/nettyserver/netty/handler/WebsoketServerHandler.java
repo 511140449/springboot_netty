@@ -27,6 +27,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
         log.info("通道创建：{}，{}", ctx.channel().remoteAddress(), DateFormatUtils.format(new Date(),"yyyy-MM-dd HH:mm:ss"));
+        ctx.writeAndFlush("ccc");
     }
 
     @Override
@@ -39,12 +40,14 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 
-        if( msg instanceof  Message ) {
+        if( msg instanceof Message ) {
+            System.out.println("Message消息");
             Message message = (Message) msg;
             Result result = MyAnnotionUtil.process(ctx, message);
             log.info("result: " + result.toString());
             ctx.writeAndFlush(result);
         }else if ( msg instanceof String ){
+            System.out.println("字符串消息");
             String heartbeatReply = null;
             String msgStr = (String) msg;
             switch (msgStr){
@@ -61,6 +64,8 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
             //接收的消息
             System.out.println(String.format("收到客户端%s的数据：%s" ,ctx.channel().id(), wsMsg.text()));
             sendMessage(ctx);
+        }else{
+            System.out.println(String.format("收到客户端%s的数据：%s" ,ctx.channel().id(), msg));
         }
     }
 

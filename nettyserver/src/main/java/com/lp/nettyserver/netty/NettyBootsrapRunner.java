@@ -74,6 +74,7 @@ public class NettyBootsrapRunner implements ApplicationRunner, ApplicationListen
                 @Override
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
                     ChannelPipeline pipeline = socketChannel.pipeline();
+                    pipeline.addLast(new WebSocketServerProtocolHandler(path, null, true, maxFrameSize));
                     pipeline.addLast(new HttpServerCodec());
                     pipeline.addLast(new ChunkedWriteHandler());
                     pipeline.addLast(new HttpObjectAggregator(65536));
@@ -94,7 +95,7 @@ public class NettyBootsrapRunner implements ApplicationRunner, ApplicationListen
                         }
                     });
                     pipeline.addLast(new WebSocketServerCompressionHandler());
-                    pipeline.addLast(new WebSocketServerProtocolHandler(path, null, true, maxFrameSize));
+
 
                     /**
                      * 从IOC中获取到Handler
