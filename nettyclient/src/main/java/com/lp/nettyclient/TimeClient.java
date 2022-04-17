@@ -15,6 +15,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.http.*;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -44,6 +45,10 @@ public class TimeClient {
             b.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
+                    ch.pipeline().addLast(new HttpClientCodec());
+                    ch.pipeline().addLast(new HttpObjectAggregator(65536));
+                    ch.pipeline().addLast(new HttpContentDecompressor());
+
                     ch.pipeline().addLast(new TimeClientHandler());
                 }
             });

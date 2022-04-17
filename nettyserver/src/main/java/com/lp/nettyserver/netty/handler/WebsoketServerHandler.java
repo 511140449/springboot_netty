@@ -5,15 +5,20 @@ import com.lp.nettyserver.netty.bean.Result;
 import com.lp.nettyserver.netty.config.MyChannelHandlerPool;
 import com.lp.nettyserver.util.MyAnnotionUtil;
 import com.lp.nettyserver.util.constants.ChannelConstant;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.DateFormatUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,8 +68,24 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
             //接收的消息
             System.out.println(String.format("收到客户端%s的数据：%s" ,ctx.channel().id(), wsMsg.text()));
             sendMessage(ctx);
-        }else{
-            System.out.println(String.format("收到客户端%s的数据：%s" ,ctx.channel().id(), msg));
+        }else if(msg instanceof FullHttpRequest){
+            FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
+            log.info("http收到用户{}的{}请求",ctx.channel().id(),fullHttpRequest.method());
+            ByteBuf content = fullHttpRequest.content();
+            content.toString(CharsetUtil.UTF_8);
+            int readIndex = content.readerIndex();
+            int first = content.getByte(readIndex);
+            readIndex++;
+            int length = content.getShort(readIndex);
+            // 减3 是因为前面是获取到总长度，前面占用了byte + short = 1+2=3
+            byte[] data = new byte[length - 3];//数据大小
+            content.getBytes(readIndex, data);
+            String str = new String(data, 0, data.length, StandardCharsets.UTF_8);
+            System.out.println(str);
+
+        }
+        else{
+            System.out.printf("收到客户端%s的数据：%s%n",ctx.channel().id(), msg);
         }
     }
 
@@ -121,6 +142,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        cause.printStackTrace();
         log.error("exceptionCaught:" + cause.getMessage());
     }
 
