@@ -35,17 +35,19 @@ public class TimeClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         log.info("通道激活");
-        ByteBuffer finalByteBuffer = ByteBuffer.allocate(2);
+        ByteBuffer finalByteBuffer = ByteBuffer.allocate(20);
         // put的时候，ByteBuffer的position指针会移动
         // 导致Unpooled.copiedBuffer(ByteBuffer buffer)返回了EMPTY_BUFFER
         finalByteBuffer.put((byte) 66);
         finalByteBuffer.put((byte) 88);
+        finalByteBuffer.put("我是一个西斯科开发商考虑到发觉拉弓搭".getBytes(StandardCharsets.UTF_8),0,18);
         // 用下面这个发不出去
 //        ByteBuf byteBuf = Unpooled.copiedBuffer(finalByteBuffer);
         // 用下面这2个可以发出去
         ByteBuf byteBuf = Unpooled.copiedBuffer((ByteBuffer) finalByteBuffer.position(0));
 //        ByteBuf byteBuf = Unpooled.copiedBuffer(finalByteBuffer.array());
         FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/", byteBuf );
+        request.headers().set("Content-Length",byteBuf.readableBytes());
         ByteBuf content = request.content();
         ctx.channel().writeAndFlush(request).addListener(new ChannelFutureListener() {
             @Override
