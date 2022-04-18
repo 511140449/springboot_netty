@@ -81,27 +81,24 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
             ByteBuf content = fullHttpRequest.content();
             content.toString(CharsetUtil.UTF_8);
-            int readLength = 0;
             int readIndex = content.readerIndex();
-            readLength++;
             String first = String.valueOf(content.getByte(readIndex));
             readIndex++;
             int totalLength = content.readableBytes();
 
             if( totalLength-readIndex>1 ){
                 int length = content.getShort(readIndex);
-                readLength++;
-                System.out.println(readIndex+"="+length);
+                System.out.println("one:"+readIndex+"="+length);
+                readIndex += 2;
             }else{
-                readLength += 2;
                 String two = String.valueOf(content.getByte(readIndex));
-                System.out.println(readIndex+"="+two);
+                System.out.println("two:"+readIndex+"="+two);
+                readIndex++;
             }
-            readIndex++;
 
-            if( totalLength > readLength ){
+            if( totalLength > readIndex ){
                 // 减3 是因为前面是获取到总长度，前面占用了byte + short = 1+2=3
-                byte[] data = new byte[totalLength - readLength];//数据大小
+                byte[] data = new byte[totalLength - readIndex];//数据大小
                 content.getBytes(readIndex, data);
                 String str = new String(data, 0, data.length, StandardCharsets.UTF_8);
                 System.out.println(str);
