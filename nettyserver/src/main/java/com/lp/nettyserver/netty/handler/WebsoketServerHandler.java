@@ -72,9 +72,9 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
             FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
             log.info("http收到用户{}的{}请求",ctx.channel().id(),fullHttpRequest.method());
             ByteBuf content = fullHttpRequest.content();
-            content.toString(CharsetUtil.UTF_8);
+            String s = content.toString(CharsetUtil.UTF_8);
             int readIndex = content.readerIndex();
-            int first = content.getByte(readIndex);
+            byte aByte = content.getByte(readIndex);
             readIndex++;
             int length = content.getShort(readIndex);
             // 减3 是因为前面是获取到总长度，前面占用了byte + short = 1+2=3

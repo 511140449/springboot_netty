@@ -46,7 +46,13 @@ public class TimeClientHandler extends ChannelInboundHandlerAdapter {
         ByteBuf byteBuf = Unpooled.copiedBuffer((ByteBuffer) finalByteBuffer.position(0));
 //        ByteBuf byteBuf = Unpooled.copiedBuffer(finalByteBuffer.array());
         FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/", byteBuf );
-        ByteBuf content = request.content();
+
+        request.headers().set("Host", "127.0.0.1");
+        request.headers().set("Connection", "keep-alive");
+        request.headers().set("Content-Length", request.content().readableBytes());
+        request.headers().set("Content-Type", "application/json");
+
+
         ctx.channel().writeAndFlush(request).addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
