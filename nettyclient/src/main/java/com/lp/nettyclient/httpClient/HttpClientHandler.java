@@ -21,6 +21,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -61,17 +66,18 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception{
-        log.info("通道关闭,3秒后开始重连服务器。");
-        //重连交给后端线程执行
-        ctx.channel().eventLoop().schedule(() -> {
-            log.info("重连服务端...");
+        log.info("通道关闭,等待5秒后重连");
+        boolean isReconnet = true;
+        while ( isReconnet ){
             try {
+                Thread.sleep(5000);
                 httpClient.run();
-            } catch (Exception e) {
-                e.printStackTrace();
+            }catch (Exception e){
+                log.info("重连失败,等待5秒后再次重连");
+                continue;
             }
-        }, 3000, TimeUnit.MILLISECONDS);
-
+            isReconnet = false;
+        }
     }
 
     @Override

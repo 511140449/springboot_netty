@@ -39,7 +39,7 @@ public class HttpClient {
         this.port = port;
     }
 
-    public void run(){
+    public void run() throws InterruptedException {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
         try {
@@ -80,6 +80,7 @@ public class HttpClient {
                         while (channelFuture.channel().isActive()) {
                             //模拟空闲状态
                             int num = new Random().nextInt(10);
+                            System.out.println(num);
                             Thread.sleep(num * 1000);
                             channelFuture.channel().writeAndFlush(HttpClient.this.heartRequest(data)).sync().addListener(new ChannelFutureListener() {
                                 @Override
@@ -96,6 +97,7 @@ public class HttpClient {
             f.channel().closeFuture().sync();
         }catch (Exception e){
             log.error("客户端异常",e);
+            throw e;
         }finally {
             workerGroup.shutdownGracefully();
         }
@@ -130,6 +132,18 @@ public class HttpClient {
         if (args.length > 0) {
             port = Integer.parseInt(args[0]);
         }
-        new HttpClient("127.0.0.1",port).run();
+        boolean isReconnet = true;
+        while ( isReconnet ){
+            try {
+                new HttpClient("127.0.0.1",port).run();
+            }catch (Exception e){
+                log.info("连接失败，等待5秒后重连");
+                Thread.sleep(5000);
+                continue;
+            }
+            isReconnet = false;
+        }
+
+
     }
 }
