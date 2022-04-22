@@ -79,20 +79,22 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
             }
             log.info("http收到用户{}的{}请求",ctx.channel().id(),fullHttpRequest.method());
 
+            String rs = null;
             ByteBuf content = fullHttpRequest.content();
-            content.toString(CharsetUtil.UTF_8);
             int readIndex = content.readerIndex();
+            //从开始位置读取一个字节
             String first = String.valueOf(content.getByte(readIndex));
+            rs += "，"+readIndex+"，"+ first;
             readIndex++;
             int totalLength = content.readableBytes();
 
             if( totalLength-readIndex>1 ){
+                //读两个字节
                 int length = content.getShort(readIndex);
-                System.out.println("one:"+readIndex+"="+length);
+                rs += "，"+readIndex+"，"+ length;
                 readIndex += 2;
             }else{
-                String two = String.valueOf(content.getByte(readIndex));
-                System.out.println("two:"+readIndex+"="+two);
+                rs += "，"+readIndex+"，"+ String.valueOf(content.getByte(readIndex));
                 readIndex++;
             }
 
@@ -100,9 +102,13 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
                 // 减3 是因为前面是获取到总长度，前面占用了byte + short = 1+2=3
                 byte[] data = new byte[totalLength - readIndex];//数据大小
                 content.getBytes(readIndex, data);
-                String str = new String(data, 0, data.length, StandardCharsets.UTF_8);
-                System.out.println(str);
+                rs += "，"+readIndex+"，"+ new String(data, 0, data.length, StandardCharsets.UTF_8);
             }
+            System.out.println("内容："+rs);
+
+            //http 反馈
+            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,Unpooled.copiedBuffer("{\"code\":\"200\",\"message\":\"我收到了\"}".getBytes(StandardCharsets.UTF_8)));
+            ctx.channel().writeAndFlush(response).sync();
         }
         else{
             System.out.printf("收到客户端%s的数据：%s%n",ctx.channel().id(), msg);
