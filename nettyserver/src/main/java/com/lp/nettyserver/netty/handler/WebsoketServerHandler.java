@@ -6,10 +6,12 @@ import com.lp.nettyserver.netty.config.MyChannelHandlerPool;
 import com.lp.nettyserver.util.MyAnnotionUtil;
 import com.lp.nettyserver.util.constants.ChannelConstant;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -18,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.DateFormatUtils;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -70,24 +73,66 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
             sendMessage(ctx);
         }else if(msg instanceof FullHttpRequest){
             FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
+            if( !fullHttpRequest.decoderResult().isSuccess() ){
+                sendError(ctx, HttpResponseStatus.BAD_REQUEST);
+                return;
+            }
             log.info("http收到用户{}的{}请求",ctx.channel().id(),fullHttpRequest.method());
-            ByteBuf content = fullHttpRequest.content();
-            String s = content.toString(CharsetUtil.UTF_8);
-            int readIndex = content.readerIndex();
-            byte aByte = content.getByte(readIndex);
-            readIndex++;
-            int length = content.getShort(readIndex);
-            // 减3 是因为前面是获取到总长度，前面占用了byte + short = 1+2=3
-            byte[] data = new byte[length - 3];//数据大小
-            content.getBytes(readIndex, data);
-            String str = new String(data, 0, data.length, StandardCharsets.UTF_8);
-            System.out.println(str);
 
+            ByteBuf content = fullHttpRequest.content();
+            content.toString(CharsetUtil.UTF_8);
+            int readIndex = content.readerIndex();
+            String first = String.valueOf(content.getByte(readIndex));
+            readIndex++;
+            int totalLength = content.readableBytes();
+
+            if( totalLength-readIndex>1 ){
+                int length = content.getShort(readIndex);
+                System.out.println("one:"+readIndex+"="+length);
+                readIndex += 2;
+            }else{
+                String two = String.valueOf(content.getByte(readIndex));
+                System.out.println("two:"+readIndex+"="+two);
+                readIndex++;
+            }
+
+            if( totalLength > readIndex ){
+                // 减3 是因为前面是获取到总长度，前面占用了byte + short = 1+2=3
+                byte[] data = new byte[totalLength - readIndex];//数据大小
+                content.getBytes(readIndex, data);
+                String str = new String(data, 0, data.length, StandardCharsets.UTF_8);
+                System.out.println(str);
+            }
         }
         else{
             System.out.printf("收到客户端%s的数据：%s%n",ctx.channel().id(), msg);
         }
     }
+
+    public static void main(String[] args) {
+        ByteBuf content = Unpooled.wrappedBuffer("我是李鹏".getBytes(StandardCharsets.UTF_8));
+        String name = content.toString(CharsetUtil.UTF_8);
+        System.out.println(name);
+
+        ByteBuffer finalByteBuffer = ByteBuffer.allocate(4);
+        //去个字节 8位
+        finalByteBuffer.put((byte) 65); //01000001
+        finalByteBuffer.put((byte) 66); //0100001001011000
+        finalByteBuffer.put((byte) 88);
+        finalByteBuffer.put((byte) 89);
+
+        ByteBuf byteBuf = Unpooled.copiedBuffer((ByteBuffer) finalByteBuffer.position(0));
+
+        int readIndex = byteBuf.readerIndex();
+        byte aByte = byteBuf.getByte(readIndex);
+        readIndex++;
+        short aShort = byteBuf.getShort(readIndex);
+        System.out.println(String.valueOf(aByte));
+        System.out.println(aShort);
+    }
+
+
+
 
    /* @Override
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame msg) throws Exception {
@@ -99,7 +144,13 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
         // 群发消息
         sendAllMessage();
     }*/
-
+   private void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
+       FullHttpResponse response = new DefaultFullHttpResponse(
+               HttpVersion.HTTP_1_1, status, Unpooled.copiedBuffer("Failure: " + status.toString() + "\r\n", CharsetUtil.UTF_8));
+       response.headers().set("Content-Type", "text/plain; charset=UTF-8");
+       System.out.println(response);
+       ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+   }
 
     private void sendMessage(ChannelHandlerContext ctx){
         String message = "消息";
