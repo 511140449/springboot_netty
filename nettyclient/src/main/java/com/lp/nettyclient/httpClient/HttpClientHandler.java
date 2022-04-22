@@ -21,9 +21,16 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class HttpClientHandler extends ChannelInboundHandlerAdapter {
+    private HttpClient httpClient;
+
+    public HttpClientHandler(HttpClient httpClient) {
+        this.httpClient = httpClient;
+    }
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg){
         log.info("收到:msg -> {}",msg);
@@ -39,44 +46,9 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         log.info("通道激活");
-        String data = "I am alive";
-        while (ctx.channel().isActive()) {
-            //模拟空闲状态
-            int num = new Random().nextInt(10);
-            Thread.sleep(num * 1000);
-            log.info("心跳，{}",data);
-            ctx.channel().writeAndFlush(heartRequest(data)).sync().addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                    log.info("消息发送成功");
-                }
-            });
-        }
     }
 
-    public FullHttpRequest heartRequest(String data) {
-        int length = data.getBytes(StandardCharsets.UTF_8).length;
-        ByteBuffer finalByteBuffer = ByteBuffer.allocate(length+2);
-        // put的时候，ByteBuffer的position指针会移动
-        // 导致Unpooled.copiedBuffer(ByteBuffer buffer)返回了EMPTY_BUFFER
-        finalByteBuffer.put((byte) 66);
-        finalByteBuffer.put((byte) 88);
-        finalByteBuffer.put(data.getBytes(StandardCharsets.UTF_8),0,length);
-        // 用下面这个发不出去
-//        ByteBuf byteBuf = Unpooled.copiedBuffer(finalByteBuffer);
-        // 用下面这2个可以发出去
-        ByteBuf byteBuf = Unpooled.copiedBuffer((ByteBuffer) finalByteBuffer.position(0));
-//        ByteBuf byteBuf = Unpooled.copiedBuffer(finalByteBuffer.array());
-        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/", byteBuf );
 
-        request.headers().set("Host", "127.0.0.1");
-        request.headers().set("Connection", "keep-alive");
-        request.headers().set("Content-Length", request.content().readableBytes());
-        request.headers().set("Content-Length",byteBuf.readableBytes());
-//        ByteBuf content = request.content();
-        request.headers().set("Content-Type", "application/json");
-        return request;
-    }
 
     /*@Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -89,14 +61,23 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception{
-        boolean active = ctx.channel().isActive();
-        log.info("通道状态：{}",active);
+        log.info("通道关闭,3秒后开始重连服务器。");
+        //重连交给后端线程执行
+        ctx.channel().eventLoop().schedule(() -> {
+            log.info("重连服务端...");
+            try {
+                httpClient.run();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, 3000, TimeUnit.MILLISECONDS);
 
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.error("Thread.sleep 异常 interruptedException:{}",cause);
+        ChannelFuture disconnect = ctx.channel().disconnect();
         ctx.close();
     }
 }

@@ -79,7 +79,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
             }
             log.info("http收到用户{}的{}请求",ctx.channel().id(),fullHttpRequest.method());
 
-            String rs = null;
+            String rs = "rs = ";
             ByteBuf content = fullHttpRequest.content();
             int readIndex = content.readerIndex();
             //从开始位置读取一个字节
