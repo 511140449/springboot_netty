@@ -107,8 +107,12 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
             System.out.println("内容："+rs);
 
             //http 反馈
-            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,Unpooled.copiedBuffer("{\"code\":\"200\",\"message\":\"我收到了\"}".getBytes(StandardCharsets.UTF_8)));
-            ctx.channel().writeAndFlush(response).sync();
+            ByteBuf byteBuf = Unpooled.copiedBuffer("{\"code\":\"200\",\"message\":\"我收到了\"}".getBytes(StandardCharsets.UTF_8));
+            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,byteBuf);
+            response.headers().set("Content-Length",byteBuf.readableBytes());
+            response.headers().set("Content-Type", "text/plain; charset=UTF-8");
+            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+            ctx.channel().writeAndFlush(response);
         }
         else{
             System.out.printf("收到客户端%s的数据：%s%n",ctx.channel().id(), msg);
