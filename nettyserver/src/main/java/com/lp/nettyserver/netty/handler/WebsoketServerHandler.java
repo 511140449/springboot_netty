@@ -35,6 +35,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
         log.info("通道创建：{}，{}", ctx.channel().remoteAddress(), DateFormatUtils.format(new Date(),"yyyy-MM-dd HH:mm:ss"));
+        ctx.channel().writeAndFlush("hello");
     }
 
     @Override
@@ -108,11 +109,19 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
             //http 反馈
             ByteBuf byteBuf = Unpooled.copiedBuffer("{\"code\":\"200\",\"message\":\"我收到了\"}".getBytes(StandardCharsets.UTF_8));
-            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,byteBuf);
-            response.headers().set("Content-Length",byteBuf.readableBytes());
-            response.headers().set("Content-Type", "text/plain; charset=UTF-8");
-            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-            ctx.channel().writeAndFlush(response);
+//            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,byteBuf);
+//            response.headers().set("Content-Length",byteBuf.readableBytes());
+////            response.headers().set("Content-Type", "text/plain; charset=UTF-8");
+//            response.headers().set("Content-Type", "application/json");
+//            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+//            ctx.channel().writeAndFlush(response);
+
+            FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,HttpMethod.GET,"/",byteBuf);
+            request.headers().set("Content-Length",byteBuf.readableBytes());
+//            response.headers().set("Content-Type", "text/plain; charset=UTF-8");
+            request.headers().set("Content-Type", "application/json");
+            request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+            ctx.channel().writeAndFlush(request);
         }
         else{
             System.out.printf("收到客户端%s的数据：%s%n",ctx.channel().id(), msg);

@@ -50,8 +50,6 @@ public class HttpClient {
             b.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    //心跳- 必须放在前面
-                    ch.pipeline().addLast(new IdleStateHandler(20, 0, 0, TimeUnit.SECONDS));
                     ch.pipeline().addLast(new HttpClientCodec());
                     ch.pipeline().addLast(new HttpObjectAggregator(65536));
                     ch.pipeline().addLast(new HttpContentDecompressor());
@@ -60,8 +58,8 @@ public class HttpClient {
             });
 
             // Start the client.
-            ChannelFuture connect = b.connect(host, port);
-            ChannelFuture f = connect.sync().addListener(new ChannelFutureListener() {
+            ChannelFuture connect = b.connect(host, port).sync();
+            ChannelFuture f = connect.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture channelFuture) throws Exception {
                     if (!channelFuture.isSuccess()) {
@@ -75,7 +73,7 @@ public class HttpClient {
                             }
                         }, 3000, TimeUnit.MILLISECONDS);
                     }else {
-                        System.out.println("服务端连接成功...,开始心跳");
+                        /*System.out.println("服务端连接成功...,开始心跳");
                         String data = "I am alive";
                         while (channelFuture.channel().isActive()) {
                             //模拟空闲状态
@@ -88,7 +86,7 @@ public class HttpClient {
                                     log.info("心跳发送成功");
                                 }
                             });
-                        }
+                        }*/
                     }
                 }
             });
