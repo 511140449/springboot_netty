@@ -73,7 +73,7 @@ public class HttpClient {
                             }
                         }, 3000, TimeUnit.MILLISECONDS);
                     }else {
-                        /*System.out.println("服务端连接成功...,开始心跳");
+                        System.out.println("服务端连接成功...,开始心跳");
                         String data = "I am alive";
                         while (channelFuture.channel().isActive()) {
                             //模拟空闲状态
@@ -86,7 +86,7 @@ public class HttpClient {
                                     log.info("心跳发送成功");
                                 }
                             });
-                        }*/
+                        }
                     }
                 }
             });
