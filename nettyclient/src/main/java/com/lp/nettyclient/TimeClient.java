@@ -48,7 +48,6 @@ public class TimeClient {
                     ch.pipeline().addLast(new HttpClientCodec());
                     ch.pipeline().addLast(new HttpObjectAggregator(65536));
                     ch.pipeline().addLast(new HttpContentDecompressor());
-
                     ch.pipeline().addLast(new TimeClientHandler());
                 }
             });

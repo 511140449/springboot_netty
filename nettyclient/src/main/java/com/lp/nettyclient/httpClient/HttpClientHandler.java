@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class HttpClientHandler extends ChannelInboundHandlerAdapter {
-    private HttpClient httpClient;
+    private final HttpClient httpClient;
 
     public HttpClientHandler(HttpClient httpClient) {
         this.httpClient = httpClient;
@@ -46,7 +46,6 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
             log.info("收到：msg -> {}",result);
         }
     }
-
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {

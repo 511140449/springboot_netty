@@ -52,7 +52,7 @@ public class HttpClient {
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(new HttpClientCodec());
                     ch.pipeline().addLast(new HttpObjectAggregator(65536));
-                    ch.pipeline().addLast(new HttpContentDecompressor());
+//                    ch.pipeline().addLast(new HttpContentDecompressor());
                     ch.pipeline().addLast(new HttpClientHandler(HttpClient.this));
                 }
             });
@@ -73,12 +73,11 @@ public class HttpClient {
                             }
                         }, 3000, TimeUnit.MILLISECONDS);
                     }else {
-                        System.out.println("服务端连接成功...,开始心跳");
+                        System.out.println("开始心跳...");
                         String data = "I am alive";
                         while (channelFuture.channel().isActive()) {
                             //模拟空闲状态
                             int num = new Random().nextInt(10);
-                            System.out.println(num);
                             Thread.sleep(num * 1000);
                             channelFuture.channel().writeAndFlush(HttpClient.this.heartRequest(data)).sync().addListener(new ChannelFutureListener() {
                                 @Override
