@@ -8,6 +8,7 @@ package com.lp.nettyclient.httpClient;
  */
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -41,18 +42,19 @@ public class HttpClient {
 
     public void run() throws InterruptedException {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-
         try {
             Bootstrap b = new Bootstrap(); // (1)
             b.group(workerGroup); // (2)
             b.channel(NioSocketChannel.class); // (3)
+            //该参数的作用就是禁止使用Nagle算法，使用于小数据即时传输
+            //b.option(ChannelOption.TCP_NODELAY, true);
             b.option(ChannelOption.SO_KEEPALIVE, true); // (4)
             b.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast(new HttpClientCodec());
                     ch.pipeline().addLast(new HttpObjectAggregator(65536));
-//                    ch.pipeline().addLast(new HttpContentDecompressor());
+                    ch.pipeline().addLast(new HttpContentDecompressor());
                     ch.pipeline().addLast(new HttpClientHandler(HttpClient.this));
                 }
             });

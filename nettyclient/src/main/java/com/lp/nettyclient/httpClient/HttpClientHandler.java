@@ -46,6 +46,11 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
             log.info("收到：msg -> {}",result);
         }
     }
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx){
+        log.info("进入 channelReadComplete");
+    }
+
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -65,6 +70,7 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception{
+        ctx.close();
         log.info("通道关闭,等待5秒后重连");
         boolean isReconnet = true;
         while ( isReconnet ){
@@ -82,7 +88,6 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.error("Thread.sleep 异常 interruptedException:{}",cause);
-        ChannelFuture disconnect = ctx.channel().disconnect();
         ctx.close();
     }
 }
