@@ -14,6 +14,8 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -90,4 +92,16 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
         log.error("Thread.sleep 异常 interruptedException:{}",cause);
         ctx.close();
     }
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if( evt instanceof IdleStateEvent ){
+            IdleStateEvent event = (IdleStateEvent) evt;
+            //写空闲时发送心跳包
+            if( event.state().equals(IdleState.WRITER_IDLE) ){
+                ctx.channel().writeAndFlush("ping");
+            }
+        }
+    }
+
 }

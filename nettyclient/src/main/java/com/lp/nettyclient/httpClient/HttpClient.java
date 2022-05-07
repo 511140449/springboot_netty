@@ -46,12 +46,16 @@ public class HttpClient {
             Bootstrap b = new Bootstrap(); // (1)
             b.group(workerGroup); // (2)
             b.channel(NioSocketChannel.class); // (3)
+
             //该参数的作用就是禁止使用Nagle算法，使用于小数据即时传输
-            //b.option(ChannelOption.TCP_NODELAY, true);
-            b.option(ChannelOption.SO_KEEPALIVE, true); // (4)
+            b.option(ChannelOption.TCP_NODELAY, true);
+            //（4）当设置为true的时候，TCP会实现监控连接是否有效，当连接处于空闲状态的时候，超过了2个小时，本地的TCP实现会发送一个数据包给远程的 socket，如果远程没有发回响应，TCP会持续尝试11分钟，知道响应为止，如果在12分钟的时候还没响应，TCP尝试关闭socket连接。
+            //这个参数其实对应用层的程序而言没有什么用。可以通过应用层实现了解服务端或客户端状态，而决定是否继续维持该Socket，默认true
+            b.option(ChannelOption.SO_KEEPALIVE, false); // (4)
             b.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
+                    ch.pipeline().addLast( new IdleStateHandler(0, 5, 0, TimeUnit.SECONDS));
                     ch.pipeline().addLast(new HttpClientCodec());
                     ch.pipeline().addLast(new HttpObjectAggregator(65536));
                     ch.pipeline().addLast(new HttpContentDecompressor());
@@ -61,7 +65,7 @@ public class HttpClient {
 
             // Start the client.
             ChannelFuture connect = b.connect(host, port).sync();
-            ChannelFuture f = connect.addListener(new ChannelFutureListener() {
+            /*ChannelFuture f = connect.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture channelFuture) throws Exception {
                     if (!channelFuture.isSuccess()) {
@@ -90,10 +94,10 @@ public class HttpClient {
                         }
                     }
                 }
-            });
+            });*/
 
             // Wait until the connection is closed.
-            f.channel().closeFuture().sync();
+            connect.channel().closeFuture().sync();
         }catch (Exception e){
             log.error("客户端异常",e);
             throw e;

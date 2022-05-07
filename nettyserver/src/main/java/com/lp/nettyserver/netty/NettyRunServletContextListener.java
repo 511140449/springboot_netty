@@ -72,8 +72,9 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
                     .channel(NioServerSocketChannel.class)
                     .option(ChannelOption.SO_BACKLOG, 128)
                     //当设置为true的时候，TCP会实现监控连接是否有效，当连接处于空闲状态的时候，超过了2个小时，本地的TCP实现会发送一个数据包给远程的 socket，如果远程没有发回响应，TCP会持续尝试11分钟，知道响应为止，如果在12分钟的时候还没响应，TCP尝试关闭socket连接。
-                    //这个参数其实对应用层的程序而言没有什么用。可以通过应用层实现了解服务端或客户端状态，而决定是否继续维持该Socket
+                    //这个参数其实对应用层的程序而言没有什么用。可以通过应用层实现了解服务端或客户端状态，而决定是否继续维持该Socket，默认true
                     .childOption(ChannelOption.SO_KEEPALIVE, false)
+
                     //禁用nagle算法
                     // Nagle算法试图减少TCP包的数量和结构性开销, 将多个较小的包组合成较大的包进行发送.但这不是重点, 关键是这个算法受TCP延迟确认影响, 会导致相继两次向连接发送请求包, 读数据时会有一个最多达500毫秒的延时.
                     .childOption(ChannelOption.TCP_NODELAY, true)
@@ -86,7 +87,7 @@ public class NettyRunServletContextListener implements ApplicationRunner, Applic
                             socketChannel.pipeline().addLast(new HttpServerCodec());
                             socketChannel.pipeline().addLast(new ChunkedWriteHandler());
                             socketChannel.pipeline().addLast(new HttpObjectAggregator(65536));
-                            socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", "WebSocket", true, 65536 * 10));
+//                            socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", "WebSocket", true, 65536 * 10));
                             socketChannel.pipeline().addLast(new WebsoketServerHandler());
 
                             // 解码编码 尝试
