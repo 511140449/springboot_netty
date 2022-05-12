@@ -35,7 +35,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
         log.info("通道创建：{}，{}", ctx.channel().remoteAddress(), DateFormatUtils.format(new Date(),"yyyy-MM-dd HH:mm:ss"));
-        ctx.channel().writeAndFlush("hello");
+        ctx.channel().writeAndFlush(createRequest("hello"));
     }
 
     @Override
@@ -172,7 +172,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
     private void sendMessage(ChannelHandlerContext ctx){
         String message = "消息";
-        ctx.writeAndFlush(new TextWebSocketFrame(message));
+        ctx.writeAndFlush(createRequest(message));
     }
     //广播
     private void sendAllMessage(){
@@ -216,5 +216,27 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
     }
 
 
+    public FullHttpRequest createRequest(String data) {
+        int length = data.getBytes(StandardCharsets.UTF_8).length;
+        ByteBuffer finalByteBuffer = ByteBuffer.allocate(length+2);
+        // put的时候，ByteBuffer的position指针会移动
+        // 导致Unpooled.copiedBuffer(ByteBuffer buffer)返回了EMPTY_BUFFER
+        finalByteBuffer.put((byte) 66);
+        finalByteBuffer.put((byte) 88);
+        finalByteBuffer.put(data.getBytes(StandardCharsets.UTF_8),0,length);
+        // 用下面这个发不出去
+//        ByteBuf byteBuf = Unpooled.copiedBuffer(finalByteBuffer);
+        // 用下面这2个可以发出去
+        ByteBuf byteBuf = Unpooled.copiedBuffer((ByteBuffer) finalByteBuffer.position(0));
+//        ByteBuf byteBuf = Unpooled.copiedBuffer(finalByteBuffer.array());
+        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/", byteBuf );
 
+        request.headers().set("Host", "127.0.0.1");
+        request.headers().set("Connection", "keep-alive");
+        request.headers().set("Content-Length", request.content().readableBytes());
+        request.headers().set("Content-Length",byteBuf.readableBytes());
+//        ByteBuf content = request.content();
+        request.headers().set("Content-Type", "application/json");
+        return request;
+    }
 }
