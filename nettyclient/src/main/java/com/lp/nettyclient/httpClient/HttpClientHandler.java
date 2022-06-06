@@ -39,24 +39,35 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg){
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         log.info("收到:msg -> {}",msg);
         if(msg instanceof FullHttpResponse){
             FullHttpResponse response = (FullHttpResponse)msg;
             ByteBuf buf = response.content();
             String result = buf.toString(CharsetUtil.UTF_8);
             log.info("收到：msg -> {}",result);
+        }else if(msg instanceof FullHttpRequest){
+            FullHttpRequest request = (FullHttpRequest)msg;
+            ByteBuf buf = request.content();
+            String result = buf.toString(CharsetUtil.UTF_8);
+            log.info("收到：msg -> {}",result);
         }
+
+        super.channelRead(ctx,msg);
     }
     @Override
-    public void channelReadComplete(ChannelHandlerContext ctx){
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
         log.info("进入 channelReadComplete");
+
+        super.channelReadComplete(ctx);
     }
 
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         log.info("通道激活");
+
+        super.channelActive(ctx);
     }
 
 
@@ -85,12 +96,15 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
             }
             isReconnet = false;
         }
+
+        super.channelInactive(ctx);
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error("Thread.sleep 异常 interruptedException:{}",cause);
         ctx.close();
+        super.exceptionCaught(ctx,cause);
     }
 
     @Override
@@ -102,6 +116,7 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
                 ctx.channel().writeAndFlush("ping");
             }
         }
+        super.userEventTriggered(ctx,evt);
     }
 
 }

@@ -65,7 +65,7 @@ public class HttpClient {
 
             // Start the client.
             ChannelFuture connect = b.connect(host, port).sync();
-            /*ChannelFuture f = connect.addListener(new ChannelFutureListener() {
+            ChannelFuture f = connect.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture channelFuture) throws Exception {
                     if (!channelFuture.isSuccess()) {
@@ -94,7 +94,7 @@ public class HttpClient {
                         }
                     }
                 }
-            });*/
+            });
 
             // Wait until the connection is closed.
             connect.channel().closeFuture().sync();

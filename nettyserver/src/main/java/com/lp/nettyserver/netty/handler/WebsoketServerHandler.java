@@ -21,6 +21,7 @@ import org.apache.commons.lang3.time.DateFormatUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -40,6 +41,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
         log.info("====== channelInactive ======");
         ctx.close();
         log.info("====== Channel close ======");
@@ -47,7 +49,6 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-
         if( msg instanceof Message ) {
             System.out.println("Message消息");
             Message message = (Message) msg;
@@ -78,10 +79,10 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
                 sendError(ctx, HttpResponseStatus.BAD_REQUEST);
                 return;
             }
-            log.info("http收到用户{}的{}请求",ctx.channel().id(),fullHttpRequest.method());
 
             String rs = "rs = ";
             ByteBuf content = fullHttpRequest.content();
+            log.info("http收到用户{}的{}请求内容：{}",ctx.channel().id(),fullHttpRequest.method(), content.toString(Charset.defaultCharset()));
             int readIndex = content.readerIndex();
             //从开始位置读取一个字节
             String first = String.valueOf(content.getByte(readIndex));
@@ -109,22 +110,25 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
             //http 反馈
             ByteBuf byteBuf = Unpooled.copiedBuffer("{\"code\":\"200\",\"message\":\"我收到了\"}".getBytes(StandardCharsets.UTF_8));
-            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,byteBuf);
+            /*FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,byteBuf);
             response.headers().set("Content-Length",byteBuf.readableBytes());
             response.headers().set("Content-Type", "application/json");
             response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-            ctx.channel().writeAndFlush(response);
+            ctx.channel().writeAndFlush(response);*/
 
-           /* FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,HttpMethod.GET,"/",byteBuf);
+            FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,HttpMethod.GET,"/",byteBuf);
             request.headers().set("Content-Length",byteBuf.readableBytes());
 //            response.headers().set("Content-Type", "text/plain; charset=UTF-8");
             request.headers().set("Content-Type", "application/json");
             request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-            ctx.channel().writeAndFlush(request);*/
+            ctx.channel().writeAndFlush(request);
         }
         else{
             System.out.printf("收到客户端%s的数据：%s%n",ctx.channel().id(), msg);
         }
+
+
+        super.channelRead(ctx,msg);
     }
 
     public static void main(String[] args) {
@@ -211,6 +215,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+       super.exceptionCaught(ctx,cause);
         cause.printStackTrace();
         log.error("exceptionCaught:" + cause.getMessage());
     }
