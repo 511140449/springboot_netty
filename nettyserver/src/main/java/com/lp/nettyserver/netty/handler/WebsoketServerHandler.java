@@ -46,17 +46,16 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         ChannelId id = ctx.pipeline().channel().id();
-        log.info("ChannelId="+id);
         if( msg instanceof Message ) {
-            System.out.println("Message消息");
             Message message = (Message) msg;
             Result result = MyAnnotionUtil.process(ctx, message);
-            log.info("result: " + result.toString());
+            log.info("Message消息: " + result.toString());
             ctx.writeAndFlush(result);
         }else if ( msg instanceof String ){
-            System.out.println("字符串消息");
-            String heartbeatReply = null;
             String msgStr = (String) msg;
+            log.info("Message消息: " + msgStr);
+
+            String heartbeatReply = null;
             switch (msgStr){
                 case "ping":
                     heartbeatReply = "pong";
@@ -68,9 +67,8 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
             ctx.writeAndFlush(heartbeatReply).sync();
         }else if (msg instanceof TextWebSocketFrame){
             TextWebSocketFrame wsMsg = (TextWebSocketFrame) msg;
-            //接收的消息
-            System.out.println(String.format("收到客户端%s的数据：%s" ,ctx.channel().id(), wsMsg.text()));
-            sendMessage(ctx);
+            log.info(String.format("收到客户端%s的TextWebSocketFrame数据：%s" ,ctx.channel().id(), wsMsg.text()));
+            ctx.writeAndFlush(createRequest(wsMsg.text()));
         }else if(msg instanceof FullHttpRequest){
             FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
             if( !fullHttpRequest.decoderResult().isSuccess() ){
@@ -119,7 +117,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
             });
         }
         else{
-            System.out.printf("收到客户端%s的数据：%s%n",ctx.channel().id(), msg);
+            log.info("收到客户端{}的数据：{}",ctx.channel().id(), msg);
         }
 
 
@@ -169,10 +167,6 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
    }
 
-    private void sendMessage(ChannelHandlerContext ctx){
-        String message = "消息";
-        ctx.writeAndFlush(createRequest(message));
-    }
     //广播
     private void sendAllMessage(){
         String message = "我是服务器，这是群发消息";
