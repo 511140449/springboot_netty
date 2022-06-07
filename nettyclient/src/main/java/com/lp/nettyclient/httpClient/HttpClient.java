@@ -16,6 +16,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,55 +47,23 @@ public class HttpClient {
             Bootstrap b = new Bootstrap(); // (1)
             b.group(workerGroup); // (2)
             b.channel(NioSocketChannel.class); // (3)
-
             //该参数的作用就是禁止使用Nagle算法，使用于小数据即时传输
             b.option(ChannelOption.TCP_NODELAY, true);
             //（4）当设置为true的时候，TCP会实现监控连接是否有效，当连接处于空闲状态的时候，超过了2个小时，本地的TCP实现会发送一个数据包给远程的 socket，如果远程没有发回响应，TCP会持续尝试11分钟，知道响应为止，如果在12分钟的时候还没响应，TCP尝试关闭socket连接。
             //这个参数其实对应用层的程序而言没有什么用。可以通过应用层实现了解服务端或客户端状态，而决定是否继续维持该Socket，默认true
-            b.option(ChannelOption.SO_KEEPALIVE, false); // (4)
+            b.option(ChannelOption.SO_KEEPALIVE, true); // (4)
             b.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast( new IdleStateHandler(0, 5, 0, TimeUnit.SECONDS));
+                    ch.pipeline().addLast( new IdleStateHandler(0, 0, 5, TimeUnit.SECONDS));
                     ch.pipeline().addLast(new HttpClientCodec());
+                    ch.pipeline().addLast(new ChunkedWriteHandler());
                     ch.pipeline().addLast(new HttpObjectAggregator(65536));
-                    ch.pipeline().addLast(new HttpContentDecompressor());
                     ch.pipeline().addLast(new HttpClientHandler(HttpClient.this));
                 }
             });
-
             // Start the client.
             ChannelFuture connect = b.connect(host, port).sync();
-            ChannelFuture f = connect.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                    if (!channelFuture.isSuccess()) {
-                        //重连交给后端线程执行
-                        channelFuture.channel().eventLoop().schedule(() -> {
-                            log.info("重连服务端...");
-                            try {
-                                HttpClient.this.run();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }, 3000, TimeUnit.MILLISECONDS);
-                    }else {
-                        System.out.println("开始心跳...");
-                        String data = "I am alive";
-                        while (channelFuture.channel().isActive()) {
-                            //模拟空闲状态
-                            int num = new Random().nextInt(10);
-                            Thread.sleep(num * 1000);
-                            channelFuture.channel().writeAndFlush(HttpClient.this.heartRequest(data)).sync().addListener(new ChannelFutureListener() {
-                                @Override
-                                public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                                    log.info("心跳发送成功");
-                                }
-                            });
-                        }
-                    }
-                }
-            });
 
             // Wait until the connection is closed.
             connect.channel().closeFuture().sync();
@@ -125,7 +94,6 @@ public class HttpClient {
         request.headers().set("Connection", "keep-alive");
         request.headers().set("Content-Length", request.content().readableBytes());
         request.headers().set("Content-Length",byteBuf.readableBytes());
-//        ByteBuf content = request.content();
         request.headers().set("Content-Type", "application/json");
         return request;
     }

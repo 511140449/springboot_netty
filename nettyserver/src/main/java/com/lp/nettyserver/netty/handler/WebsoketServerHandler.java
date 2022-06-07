@@ -7,10 +7,7 @@ import com.lp.nettyserver.util.MyAnnotionUtil;
 import com.lp.nettyserver.util.constants.ChannelConstant;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelId;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.timeout.IdleState;
@@ -21,6 +18,7 @@ import org.apache.commons.lang3.time.DateFormatUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -34,14 +32,12 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        super.channelActive(ctx);
         log.info("通道创建：{}，{}", ctx.channel().remoteAddress(), DateFormatUtils.format(new Date(),"yyyy-MM-dd HH:mm:ss"));
-        ctx.channel().writeAndFlush(createRequest("hello"));
+        ctx.writeAndFlush(createRequest("hello"));
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        super.channelInactive(ctx);
         log.info("====== channelInactive ======");
         ctx.close();
         log.info("====== Channel close ======");
@@ -49,6 +45,8 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        ChannelId id = ctx.pipeline().channel().id();
+        log.info("ChannelId="+id);
         if( msg instanceof Message ) {
             System.out.println("Message消息");
             Message message = (Message) msg;
@@ -82,7 +80,7 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
             String rs = "rs = ";
             ByteBuf content = fullHttpRequest.content();
-            log.info("http收到用户{}的{}请求内容：{}",ctx.channel().id(),fullHttpRequest.method(), content.toString(Charset.defaultCharset()));
+            log.info("http收到用户{}的{}请求内容：{}",ctx.channel().id(),fullHttpRequest.method(),content );
             int readIndex = content.readerIndex();
             //从开始位置读取一个字节
             String first = String.valueOf(content.getByte(readIndex));
@@ -106,22 +104,19 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
                 content.getBytes(readIndex, data);
                 rs += "，"+readIndex+"，"+ new String(data, 0, data.length, StandardCharsets.UTF_8);
             }
-            System.out.println("内容："+rs);
-
             //http 反馈
-            ByteBuf byteBuf = Unpooled.copiedBuffer("{\"code\":\"200\",\"message\":\"我收到了\"}".getBytes(StandardCharsets.UTF_8));
-            /*FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,byteBuf);
-            response.headers().set("Content-Length",byteBuf.readableBytes());
-            response.headers().set("Content-Type", "application/json");
+            String reply = "{\"code\":\"200\",\"message\":\"pong："+content.toString()+"\"}";
+            ByteBuf byteBuf = Unpooled.copiedBuffer(reply.getBytes(StandardCharsets.UTF_8));
+            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,byteBuf);
+            response.headers().set(HttpHeaderNames.CONTENT_LENGTH,byteBuf.readableBytes());
+            response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json");
             response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-            ctx.channel().writeAndFlush(response);*/
-
-            FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,HttpMethod.GET,"/",byteBuf);
-            request.headers().set("Content-Length",byteBuf.readableBytes());
-//            response.headers().set("Content-Type", "text/plain; charset=UTF-8");
-            request.headers().set("Content-Type", "application/json");
-            request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-            ctx.channel().writeAndFlush(request);
+            ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                    log.info("成功回复通道：{}的心跳包：{}",channelFuture.channel().id(),content.toString());
+                }
+            });
         }
         else{
             System.out.printf("收到客户端%s的数据：%s%n",ctx.channel().id(), msg);

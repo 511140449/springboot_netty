@@ -52,39 +52,22 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
             String result = buf.toString(CharsetUtil.UTF_8);
             log.info("收到：msg -> {}",result);
         }
-
-        super.channelRead(ctx,msg);
     }
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
         log.info("进入 channelReadComplete");
-
-        super.channelReadComplete(ctx);
     }
 
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        log.info("通道激活");
-
-        super.channelActive(ctx);
+        log.info("通道:{} 激活",ctx.channel().id());
     }
-
-
-
-    /*@Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        URI uri = new URI("/user/get");
-        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_0, HttpMethod.GET, uri.toASCIIString());
-        request.headers().add(HttpHeaderNames.CONNECTION,HttpHeaderValues.KEEP_ALIVE);
-        request.headers().add(HttpHeaderNames.CONTENT_LENGTH,request.content().readableBytes());
-        ctx.writeAndFlush(request);
-    }*/
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception{
         ctx.close();
-        log.info("通道关闭,等待5秒后重连");
+        log.info("不活跃的通道关闭,等待5秒后重连");
         boolean isReconnet = true;
         while ( isReconnet ){
             try {
@@ -96,27 +79,31 @@ public class HttpClientHandler extends ChannelInboundHandlerAdapter {
             }
             isReconnet = false;
         }
-
-        super.channelInactive(ctx);
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error("Thread.sleep 异常 interruptedException:{}",cause);
         ctx.close();
-        super.exceptionCaught(ctx,cause);
     }
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if( evt instanceof IdleStateEvent ){
-            IdleStateEvent event = (IdleStateEvent) evt;
+            String  currentTimeMilli =  String.valueOf(System.currentTimeMillis());
+            //不管什么空闲都发送心跳
+            ctx.channel().writeAndFlush( httpClient.heartRequest( currentTimeMilli )).addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                    log.info("成功向通道：{},发送心跳包:{},：",ctx.pipeline().channel().id(),currentTimeMilli);
+                }
+            });
             //写空闲时发送心跳包
+            /*IdleStateEvent event = (IdleStateEvent) evt;
             if( event.state().equals(IdleState.WRITER_IDLE) ){
-                ctx.channel().writeAndFlush("ping");
-            }
+                ctx.channel().writeAndFlush(httpClient.heartRequest("I am ping heart"));
+            }*/
         }
-        super.userEventTriggered(ctx,evt);
     }
 
 }
