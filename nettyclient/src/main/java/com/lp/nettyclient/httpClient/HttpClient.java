@@ -77,11 +77,12 @@ public class HttpClient {
 
     public FullHttpRequest heartRequest(String data) {
         int length = data.getBytes(StandardCharsets.UTF_8).length;
-        ByteBuffer finalByteBuffer = ByteBuffer.allocate(length+2);
+        ByteBuffer finalByteBuffer = ByteBuffer.allocate(length+3);
         // put的时候，ByteBuffer的position指针会移动
         // 导致Unpooled.copiedBuffer(ByteBuffer buffer)返回了EMPTY_BUFFER
         finalByteBuffer.put((byte) 66);
         finalByteBuffer.put((byte) 88);
+        finalByteBuffer.put((byte) 44);
         finalByteBuffer.put(data.getBytes(StandardCharsets.UTF_8),0,length);
         // 用下面这个发不出去
 //        ByteBuf byteBuf = Unpooled.copiedBuffer(finalByteBuffer);

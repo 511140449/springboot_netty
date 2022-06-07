@@ -78,11 +78,11 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
 
             String rs = "rs = ";
             ByteBuf content = fullHttpRequest.content();
-            log.info("http收到用户{}的{}请求内容：{}",ctx.channel().id(),fullHttpRequest.method(),content );
+
             int readIndex = content.readerIndex();
             //从开始位置读取一个字节
             String first = String.valueOf(content.getByte(readIndex));
-            rs += "，"+readIndex+"，"+ first;
+            rs += readIndex+"，"+ first;
             readIndex++;
             int totalLength = content.readableBytes();
 
@@ -95,24 +95,29 @@ public class WebsoketServerHandler extends ChannelInboundHandlerAdapter {
                 rs += "，"+readIndex+"，"+ String.valueOf(content.getByte(readIndex));
                 readIndex++;
             }
-
+            String millis = null;
             if( totalLength > readIndex ){
                 // 减3 是因为前面是获取到总长度，前面占用了byte + short = 1+2=3
                 byte[] data = new byte[totalLength - readIndex];//数据大小
                 content.getBytes(readIndex, data);
-                rs += "，"+readIndex+"，"+ new String(data, 0, data.length, StandardCharsets.UTF_8);
+                millis = new String(data, 0, data.length, StandardCharsets.UTF_8);
+                rs += "，"+readIndex+"，"+ millis;
             }
+
+            log.info("http收到用户{}的{}请求内容：{}",ctx.channel().id(),fullHttpRequest.method(),rs );
+
             //http 反馈
-            String reply = "{\"code\":\"200\",\"message\":\"pong："+content.toString()+"\"}";
+            String reply = "{\"code\":\"200\",\"message\":\"pong："+millis+"\"}";
             ByteBuf byteBuf = Unpooled.copiedBuffer(reply.getBytes(StandardCharsets.UTF_8));
             FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK,byteBuf);
             response.headers().set(HttpHeaderNames.CONTENT_LENGTH,byteBuf.readableBytes());
             response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json");
             response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+            String finalMillis = millis;
             ctx.writeAndFlush(response).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                    log.info("成功回复通道：{}的心跳包：{}",channelFuture.channel().id(),content.toString());
+                    log.info("成功回复通道：{}的心跳包：{}",channelFuture.channel().id(), finalMillis);
                 }
             });
         }
