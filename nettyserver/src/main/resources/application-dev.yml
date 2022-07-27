@@ -79,3 +79,7 @@ netty:
     max-frame-size: 10240
     # URI路径
     path: /channel
+
+zookeeper:
+
+
